@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/jroimartin/gocui"
+	"github.com/mrgarelli/tui/reactions"
 )
 
 var (
@@ -89,11 +90,11 @@ func getKey(symbol string) rune {
 }
 
 func keybindings(g *gocui.Gui) error {
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, reactions.Quit); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("", getKey("q"), gocui.ModNone, quit); err != nil {
+	if err := g.SetKeybinding("", getKey("q"), gocui.ModNone, reactions.Quit); err != nil {
 		return err
 	}
 
@@ -129,10 +130,6 @@ func keybindings(g *gocui.Gui) error {
 		return err
 	}
 	return nil
-}
-
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
 }
 
 func move(g *gocui.Gui, v *gocui.View, direction int) error {
@@ -172,7 +169,7 @@ func showMsg(g *gocui.Gui, v *gocui.View) error {
 	}
 	finalChoice = l
 
-	return quit(g, v)
+	return reactions.Quit(g, v)
 }
 
 func delMsg(g *gocui.Gui, v *gocui.View) error {
