@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 
 	"github.com/jroimartin/gocui"
@@ -9,8 +10,10 @@ import (
 )
 
 var (
-	viewArr = []string{"v1", "v2", "v3", "v4"}
-	active  = 0
+	viewArr   = []string{"v1", "v2", "v3", "v4"}
+	active    = 0
+	boxHeight = 2
+	fileBytes = []byte{}
 )
 
 func setCurrentViewOnTop(g *gocui.Gui, name string) (*gocui.View, error) {
@@ -45,7 +48,19 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 }
 
 func newLine(g *gocui.Gui, v *gocui.View) error {
-	v.EditNewLine()
+
+	go g.Update(func(g *gocui.Gui) error {
+		boxHeight = countRune(string(fileBytes), []rune("\n")[0]) + 2
+		v.EditNewLine()
+		// v.Rewind()
+		// nfb := []byte{}
+		// _, err := v.Read(nfb)
+		// if err != nil {
+		// 	return err
+		// }
+		// fileBytes = nfb
+		return nil
+	})
 	return nil
 }
 
@@ -60,6 +75,7 @@ func keybindingsRTB(g *gocui.Gui) error {
 	if err := g.SetKeybinding("v1", gocui.KeyEnter, gocui.ModAlt, newLine); err != nil {
 		log.Panicln(err)
 	}
+
 	return nil
 }
 
@@ -74,6 +90,11 @@ func ResizableTextBox() error {
 	g.Cursor = true
 	g.SelFgColor = gocui.ColorGreen
 
+	fileBytes, err = ioutil.ReadFile("./_example/rsrc/editable_file.txt")
+	if err != nil {
+		return err
+	}
+
 	g.SetManagerFunc(layoutRTB)
 
 	if err := keybindingsRTB(g); err != nil {
@@ -86,15 +107,26 @@ func ResizableTextBox() error {
 	return nil
 }
 
+func countRune(s string, r rune) int {
+	count := 0
+	for _, c := range s {
+		if c == r {
+			count++
+		}
+	}
+	return count
+}
+
 func layoutRTB(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	if v, err := g.SetView("v1", 0, 0, maxX/2-1, maxY/2-1); err != nil {
+	boxHeight = countRune(string(fileBytes), []rune("\n")[0]) + 2
+	if v, err := g.SetView("v1", 0, 0, maxX/2-1, boxHeight); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Title = "v1 (editable)"
 		v.Editable = true
-		v.Wrap = true
+		v.Write(fileBytes)
 
 		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
 			return err

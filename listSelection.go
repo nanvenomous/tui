@@ -14,11 +14,6 @@ var (
 	finalChoice string
 )
 
-const (
-	UP = iota
-	DOWN
-)
-
 func LaunchSelection(inputChoices []string) string {
 	finalChoice = ""
 	if len(inputChoices) < 1 {
@@ -99,7 +94,7 @@ func keybindings(g *gocui.Gui) error {
 	}
 
 	if err := g.SetKeybinding("but1", getKey("j"), gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		err := move(g, v, DOWN)
+		err := reactions.Move(g, v, reactions.DOWN)
 		if err != nil {
 			return err
 		}
@@ -109,7 +104,7 @@ func keybindings(g *gocui.Gui) error {
 	}
 
 	if err := g.SetKeybinding("but1", getKey("k"), gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		err := move(g, v, UP)
+		err := reactions.Move(g, v, reactions.UP)
 		if err != nil {
 			return err
 		}
@@ -127,29 +122,6 @@ func keybindings(g *gocui.Gui) error {
 	}
 
 	if err := g.SetKeybinding("msg", gocui.MouseLeft, gocui.ModNone, delMsg); err != nil {
-		return err
-	}
-	return nil
-}
-
-func move(g *gocui.Gui, v *gocui.View, direction int) error {
-	var inc int
-
-	if _, err := g.SetCurrentView(v.Name()); err != nil {
-		return err
-	}
-
-	switch direction {
-	case UP:
-		inc = -1
-	case DOWN:
-		inc = 1
-	default:
-		log.Panic("incorrect direction given")
-	}
-
-	_, cy := v.Cursor()
-	if err := v.SetCursor(0, cy+inc); err == nil {
 		return err
 	}
 	return nil
