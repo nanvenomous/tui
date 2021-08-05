@@ -50,15 +50,15 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 func newLine(g *gocui.Gui, v *gocui.View) error {
 
 	go g.Update(func(g *gocui.Gui) error {
-		boxHeight = countRune(string(fileBytes), []rune("\n")[0]) + 2
+		fileString := v.ViewBuffer()
+		fileBytes = []byte(fileString)
+		maxX, _ := g.Size()
+		boxHeight = countRune(fileString, []rune("\n")[0]) + 2
+		if _, err := g.SetView(v.Name(), 0, 0, maxX/2-1, boxHeight); err != nil {
+			return err
+		}
+
 		v.EditNewLine()
-		// v.Rewind()
-		// nfb := []byte{}
-		// _, err := v.Read(nfb)
-		// if err != nil {
-		// 	return err
-		// }
-		// fileBytes = nfb
 		return nil
 	})
 	return nil
