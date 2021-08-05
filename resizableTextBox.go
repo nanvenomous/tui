@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"github.com/jroimartin/gocui"
 	"github.com/mrgarelli/tui/reactions"
@@ -48,7 +49,6 @@ func nextView(g *gocui.Gui, v *gocui.View) error {
 }
 
 func newLine(g *gocui.Gui, v *gocui.View) error {
-
 	go g.Update(func(g *gocui.Gui) error {
 		fileString := v.ViewBuffer()
 		fileBytes = []byte(fileString)
@@ -57,8 +57,22 @@ func newLine(g *gocui.Gui, v *gocui.View) error {
 		if _, err := g.SetView(v.Name(), 0, 0, maxX/2-1, boxHeight); err != nil {
 			return err
 		}
-
 		v.EditNewLine()
+		return nil
+	})
+	return nil
+}
+
+func backSpace(g *gocui.Gui, v *gocui.View) error {
+	v.EditDelete(true)
+	go g.Update(func(g *gocui.Gui) error {
+		fileString := v.ViewBuffer()
+		fileBytes = []byte(fileString)
+		maxX, _ := g.Size()
+		boxHeight = countRune(fileString, []rune("\n")[0]) + 1
+		if _, err := g.SetView(v.Name(), 0, 0, maxX/2-1, boxHeight); err != nil {
+			return err
+		}
 		return nil
 	})
 	return nil
@@ -76,7 +90,30 @@ func keybindingsRTB(g *gocui.Gui) error {
 		log.Panicln(err)
 	}
 
+	if err := g.SetKeybinding("v1", gocui.KeyBackspace, gocui.ModNone, backSpace); err != nil {
+		log.Panicln(err)
+	}
+
+	if err := g.SetKeybinding("v1", gocui.KeyBackspace, gocui.ModAlt, func(g *gocui.Gui, v *gocui.View) error { return nil }); err != nil {
+		log.Panicln(err)
+	}
+
+	if err := g.SetKeybinding("v1", gocui.KeyBackspace2, gocui.ModNone, backSpace); err != nil {
+		log.Panicln(err)
+	}
 	return nil
+}
+
+func sanitizedFile(fpath string) ([]byte, error) {
+	fileBytes, err := ioutil.ReadFile("./_example/rsrc/editable_file.txt")
+	fileString := string(fileBytes)
+	for strings.HasPrefix(fileString, "\n") {
+		fileString = strings.TrimPrefix(fileString, "\n")
+	}
+	for strings.HasSuffix(fileString, "\n") {
+		fileString = strings.TrimSuffix(fileString, "\n")
+	}
+	return []byte(fileString), err
 }
 
 func ResizableTextBox() error {
@@ -90,11 +127,13 @@ func ResizableTextBox() error {
 	g.Cursor = true
 	g.SelFgColor = gocui.ColorGreen
 
-	fileBytes, err = ioutil.ReadFile("./_example/rsrc/editable_file.txt")
+	// fileBytes, err = ioutil.ReadFile("./_example/rsrc/editable_file.txt")
+	fileBytes, err = sanitizedFile("./_example/rsrc/editable_file.txt")
 	if err != nil {
 		return err
 	}
 
+	boxHeight = countRune(string(fileBytes), []rune("\n")[0]) + 2
 	g.SetManagerFunc(layoutRTB)
 
 	if err := keybindingsRTB(g); err != nil {
@@ -119,14 +158,16 @@ func countRune(s string, r rune) int {
 
 func layoutRTB(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	boxHeight = countRune(string(fileBytes), []rune("\n")[0]) + 2
 	if v, err := g.SetView("v1", 0, 0, maxX/2-1, boxHeight); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Title = "v1 (editable)"
 		v.Editable = true
+		// v.Autoscroll = true
+		// v.Overwrite = true
 		v.Write(fileBytes)
+		// fmt.Fprintf(v, string(fileBytes))
 
 		if _, err = setCurrentViewOnTop(g, "v1"); err != nil {
 			return err
